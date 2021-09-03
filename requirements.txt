@@ -1,0 +1,15 @@
+pandas
+scipy
+scikit-learn
+matplotlib
+psycopg2-binary
+sqlalchemy
+openpyxl
+xlsxwriter
+python-dotenv
+dash
+dash_auth
+dash_bootstrap_components
+flask
+gunicorn
+pymemcache
