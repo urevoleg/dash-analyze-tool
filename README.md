@@ -1,6 +1,7 @@
 # dash-analyze-tool
 
 Для запуска необходимо выполнить:
+
 0. Перейти в папку проекта: `cd dash-analyze-tool`. Далее все команды выполняются в папке проекта
 1. `python3 venv venv`
 2. `source venv/bin/activate`
