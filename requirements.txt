@@ -1,6 +1,7 @@
 pandas
 scipy
 scikit-learn
+umap-learn
 matplotlib
 psycopg2-binary
 sqlalchemy

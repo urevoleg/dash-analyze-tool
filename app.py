@@ -1,13 +1,7 @@
-import os
-
 import flask
 
 import dash
-import dash_auth
 import dash_bootstrap_components as dbc
-
-from dotenv import load_dotenv
-load_dotenv()
 
 # bootstrap theme
 # https://bootswatch.com/lux/

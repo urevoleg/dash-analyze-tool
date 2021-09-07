@@ -4,6 +4,10 @@ import sys
 BASEDIR = server.config['BASEDIR']
 sys.path.append(BASEDIR)
 
+DATASETDIR = server.config['DATASETDIR']
+
+IS_MEMCACHED = server.config['IS_MEMCACHED']
+
 # comment
 import os
 import json
@@ -33,12 +37,24 @@ colors = list(dict(mcd.TABLEAU_COLORS).values())
 
 umap_metrics = ['euclidean', 'manhattan', 'mahalanobis', 'seuclidean', 'cosine', 'correlation', 'jaccard', 'yule']
 
-DATASET_FOLDER = os.path.join(os.path.dirname(__file__), "tmp")
-files = {dataset.split('.')[0]: os.path.join(DATASET_FOLDER, dataset) for dataset in os.listdir(DATASET_FOLDER) if dataset.endswith('csv')}
+files = {dataset.split('.')[0]: os.path.join(DATASETDIR, dataset) for dataset in os.listdir(DATASETDIR) if dataset.endswith('csv')}
+
+
+class DictCashe(type({})):
+    def add(self, key, value, **kwargs):
+        self.update({key: value})
 
 
 def make_cach_client(host='localhost', port=11211):
-    return base.Client((host, port))
+    if IS_MEMCACHED:
+        return base.Client((host, port))
+    else:
+        if globals().get('c') is None:
+            global c
+            c = DictCashe()
+            return c
+        else:
+            return globals().get('c')
 
 
 # масштабирование без масштабирования
@@ -283,11 +299,11 @@ def update_graph_live(method, scaler, data, n_clusters, is_rotate, umap_neighbou
         methods['UMAP'] = UMAP(n_components=2, n_neighbors=umap_neighbours, min_dist=umap_mindist,
                                metric=umap_metric, random_state=88)
 
-    res = reduct_dimension(df.sample(frac=1, replace=False, random_state=114), method, scaler)
+    """res = reduct_dimension(df.sample(frac=1, replace=False, random_state=114), method, scaler)
 
     gm = GaussianMixture(n_components=n_clusters, random_state=88)
     gm.fit(res.values)
-    res['gr'] = gm.predict(res.values)
+    res['gr'] = gm.predict(res.values)"""
 
     # caching request
     # put to cach

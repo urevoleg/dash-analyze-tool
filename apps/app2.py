@@ -4,10 +4,9 @@ import sys
 BASEDIR = server.config['BASEDIR']
 sys.path.append(BASEDIR)
 
+DATASETDIR = server.config['DATASETDIR']
+
 import os
-import datetime as dt
-import json
-from random import gauss
 
 import pandas as pd
 import numpy as np
@@ -20,21 +19,16 @@ import dash_table
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
+from dash.dependencies import Input, Output
 
 import plotly.graph_objs as go
 import plotly.express as px
-from plotly.colors import n_colors
-import plotly.figure_factory as ff
-from plotly.subplots import make_subplots
 
 
-DATASET_FOLDER = os.path.join(os.path.dirname(__file__), "tmp")
-files = {dataset.split('.')[0]: os.path.join(DATASET_FOLDER, dataset) for dataset in os.listdir(DATASET_FOLDER) if dataset.endswith('csv')}
+
+files = {dataset.split('.')[0]: os.path.join(DATASETDIR, dataset) for dataset in os.listdir(DATASETDIR) if dataset.endswith('csv')}
 
 colors = list(dict(mcd.TABLEAU_COLORS).values())
-
 
 style_cell = {'color': 'black',
                     'border': '1px solid #D8D8D8',
