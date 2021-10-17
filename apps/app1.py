@@ -25,7 +25,7 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
 
-def prepare_df(df, parse_date=False, sort=False, sort_by=None):
+def prepare_df(df, sort=False, sort_by=None):
     """
     Начальные данные:
     - dt - столбец со временем
@@ -35,7 +35,7 @@ def prepare_df(df, parse_date=False, sort=False, sort_by=None):
     :param path: путь до файла с данными
     :return: pd.DataFrame с предобработкой
     """
-    if parse_date:
+    if 'dt' in df.columns:
         df['dt'] = pd.to_datetime(df['dt'])
     else:
         df['dt'] = range(df.shape[0])
@@ -121,7 +121,7 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
     print(list_of_names)
     if list_of_contents is not None:
         df, filename = parse_contents(list_of_contents, list_of_names)
-        df = prepare_df(df, parse_date=True, sort=True, sort_by='dt')
+        df = prepare_df(df, sort=True, sort_by='dt')
         features = {'options': [dict(label=elem, value=elem) for elem in df.select_dtypes(include=np.number).columns],
                     'value': df.select_dtypes(include=np.number).columns[0]}
         return {'file': filename,
