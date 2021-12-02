@@ -174,10 +174,8 @@ layout = dbc.Container([
                      id='scaler_selector-2'
                  ),
                  html.Br()], width=3),
-        dbc.Col([html.Label('Кол-во кластеров:'),
+        dbc.Col([html.Label('Признак для цвета:'),
                  dcc.Dropdown(
-                     options=[{"label": k, "value": k} for k in range(1, 10)],
-                     value=1,
                      multi=False,
                      id='slider_selector-2'
                  ),
@@ -263,17 +261,33 @@ def toggle_collapse(n, is_open):
     return is_open
 
 
-@app.callback([Output("store-app-2", "data")],
+@app.callback([Output("store-app-2", "data"),
+               Output("slider_selector-2", "value"),
+               Output("slider_selector-2", "options")
+               ],
               [Input('file_selector-2', 'value')])
 def choose_file(n):
     print(files[n])
     data = prepare_df(files[n])
 
+    # features for color
+    color_features_list = data.filter(like='color').columns.tolist()
+    if color_features_list == []:
+        data['color'] = 1
+        color_features_list = data.filter(like='color').columns.tolist()
+
+    color_features = {
+        'options': [dict(label=elem, value=elem) for elem in color_features_list] + [dict(label="No",
+                                                                                          value='No')],
+        'value': 'No'}
+
     return {
         'file': n,
         'data': data.to_dict('list'),
         'time_line': 'dt'
-    },
+    },\
+        color_features['value'], \
+        color_features['options'],
 
 
 # Multiple components can update everytime interval gets fired.
@@ -286,9 +300,9 @@ def choose_file(n):
                Input("umap-neighbours", "value"),
                Input("umap-mindist", "value"),
                Input("umap-metric", "value")])
-def update_graph_live(method, scaler, data, n_clusters, is_rotate, umap_neighbours, umap_mindist, umap_metric):
+def update_graph_live(method, scaler, data, color_feature, is_rotate, umap_neighbours, umap_mindist, umap_metric):
 
-    hash_req = '-'.join([str(elem) for elem in [hash(json.dumps(data['data'])), method, scaler, n_clusters, is_rotate,
+    hash_req = '-'.join([str(elem) for elem in [hash(json.dumps(data['data'])), method, scaler, color_feature, is_rotate,
                                                 umap_neighbours, umap_mindist, umap_metric]])
 
     # фильтруем датасет
@@ -299,12 +313,6 @@ def update_graph_live(method, scaler, data, n_clusters, is_rotate, umap_neighbou
         methods['UMAP'] = UMAP(n_components=2, n_neighbors=umap_neighbours, min_dist=umap_mindist,
                                metric=umap_metric, random_state=88)
 
-    """res = reduct_dimension(df.sample(frac=1, replace=False, random_state=114), method, scaler)
-
-    gm = GaussianMixture(n_components=n_clusters, random_state=88)
-    gm.fit(res.values)
-    res['gr'] = gm.predict(res.values)"""
-
     # caching request
     # put to cach
     c = make_cach_client()
@@ -313,9 +321,10 @@ def update_graph_live(method, scaler, data, n_clusters, is_rotate, umap_neighbou
         print('Is new data!')
         res = reduct_dimension(df.sample(frac=1, replace=False, random_state=114), method, scaler)
 
-        gm = GaussianMixture(n_components=n_clusters, random_state=88)
-        gm.fit(res.values)
-        res['gr'] = gm.predict(res.values)
+        if color_feature == 'No':
+            res['gr'] = 1
+        else:
+            res['gr'] = df[color_feature]
 
         c.add(hash_req, json.dumps(res.to_dict('records')), expire=60*10)
     else:
@@ -342,7 +351,7 @@ def update_graph_live(method, scaler, data, n_clusters, is_rotate, umap_neighbou
             tmp.iloc[:, 0], tmp.iloc[:, 1] = tmp_rotate[:, 0], tmp_rotate[:, 1]
 
         data_s += [go.Scatter(x=tmp[f'{method}_1'], y=tmp[f'{method}_2'], name=f"Group: {gr}", mode='markers',
-                                                marker=dict(size=5, color=colors[idx], opacity=0.45),
+                                                marker=dict(size=5, color=colors[idx % len(colors)], opacity=0.45),
                               text=tmp.reset_index()['index'].map(lambda x: str(f'Sample index: {x}')))]
 
         # add cluster centers
@@ -350,7 +359,7 @@ def update_graph_live(method, scaler, data, n_clusters, is_rotate, umap_neighbou
         #print(idx, gm.means_[idx], gm.covariances_[idx][:2, :2])
         #add centers
         data_s += [go.Scatter(x=[tmp.iloc[:, 0].mean()], y=[tmp.iloc[:, 1].mean()], name=f"Center group: {idx}", mode='markers',
-                              marker=dict(size=10, color=colors[idx]),
+                              marker=dict(size=10, color=colors[idx % len(colors)]),
                               opacity=0.75)]
 
         # add clusters contour with shapes
@@ -366,7 +375,7 @@ def update_graph_live(method, scaler, data, n_clusters, is_rotate, umap_neighbou
                     y1=tmp.iloc[:, 1].mean() + 1.5 * tmp.iloc[:, 1].std(),
                     opacity=0.75,
                     fillcolor=None,
-                    line_color=colors[idx],
+                    line_color=colors[idx % len(colors)],
                 ))
 
     fig_param_0 = go.Figure(data=data_s)
