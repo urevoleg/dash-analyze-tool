@@ -135,6 +135,7 @@ def prepare_df(path, parse_date=False, sort=False, sort_by=None):
         df = df.sort_values(by=[sort_by])
         df = df.drop(sort_by, axis=1)
 
+    # на выходе заполняем пропуски средним для каждого признака + дропаем столбцы, где все 0
     return df
 
 
@@ -301,17 +302,19 @@ def choose_file(n):
                Input("umap-mindist", "value"),
                Input("umap-metric", "value")])
 def update_graph_live(method, scaler, data, color_feature, is_rotate, umap_neighbours, umap_mindist, umap_metric):
-
+    print(color_feature)
     hash_req = '-'.join([str(elem) for elem in [hash(json.dumps(data['data'])), method, scaler, color_feature, is_rotate,
                                                 umap_neighbours, umap_mindist, umap_metric]])
 
     # фильтруем датасет
     df = pd.DataFrame(data['data']).drop(data['time_line'], axis=1)
     print(df.head())
+    series_color = df['color']
+
 
     if method == 'UMAP':
         methods['UMAP'] = UMAP(n_components=2, n_neighbors=umap_neighbours, min_dist=umap_mindist,
-                               metric=umap_metric, random_state=88)
+                               metric=umap_metric, random_state=88, n_jobs=-1)
 
     # caching request
     # put to cach
@@ -319,12 +322,14 @@ def update_graph_live(method, scaler, data, color_feature, is_rotate, umap_neigh
 
     if c.get(hash_req) is None:
         print('Is new data!')
+        df = df.drop('color', axis=1)
+
         res = reduct_dimension(df.sample(frac=1, replace=False, random_state=114), method, scaler)
 
         if color_feature == 'No':
             res['gr'] = 1
         else:
-            res['gr'] = df[color_feature]
+            res['gr'] = series_color
 
         c.add(hash_req, json.dumps(res.to_dict('records')), expire=60*10)
     else:
